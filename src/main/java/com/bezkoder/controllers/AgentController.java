@@ -30,7 +30,8 @@ public class AgentController {
      }
 
      @GetMapping("/{username}")
-     public ResponseEntity<?> getAgentDetails(@PathVariable String username, @CookieValue(value = "token") String token) {
+     @PreAuthorize("hasRole('AGENT')")
+     public ResponseEntity<?> getAgent(@PathVariable String username, @CookieValue(value = "token") String token) {
 
           try {
 
@@ -67,6 +68,7 @@ public class AgentController {
 //     }
 
      @PostMapping
+     @PreAuthorize("hasRole('AGENT')")
      public ResponseEntity<?> registerAgent(@RequestBody Agent agent, @CookieValue(value = "token") String token) {
           try {
                String username = jwtUtils.getUserNameFromJwtToken(token);
@@ -93,7 +95,7 @@ public class AgentController {
 
      @PutMapping("/{username}")
      @PreAuthorize("hasRole('AGENT')")
-     public ResponseEntity<?> updateAgentDetails(@PathVariable String username, @CookieValue(value = "token") String token, @RequestBody Agent reqAgent) {
+     public ResponseEntity<?> updateAgent(@PathVariable String username, @CookieValue(value = "token") String token, @RequestBody Agent reqAgent) {
 
           try {
                if(userRepository.existsByUsername(username))
@@ -128,10 +130,11 @@ public class AgentController {
      }
 
      @DeleteMapping("/{username}")
-     public ResponseEntity<?> updateAgentDetails(@PathVariable String username, @CookieValue(value = "token") String token) {
+     @PreAuthorize("hasRole('AGENT')")
+     public ResponseEntity<?> deleteAgent(@PathVariable String username, @CookieValue(value = "token") String token) {
 
           try {
-               if(userRepository.existsByUsername(username))
+               if(!userRepository.existsByUsername(username))
                     throw new Exception("No User Found !!\n" + "Requested Username : " + username);
 
                String tokenUserName = jwtUtils.getUserNameFromJwtToken(token);
