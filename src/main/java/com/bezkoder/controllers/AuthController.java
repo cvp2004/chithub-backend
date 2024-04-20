@@ -9,6 +9,8 @@ import com.bezkoder.models.JWTToken;
 import com.bezkoder.repository.TokenRepository;
 import jakarta.validation.Valid;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -39,6 +41,7 @@ import com.bezkoder.security.services.UserDetailsImpl;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+  private static final Logger logger = LoggerFactory.getLogger(JwtUtils.class);
   final AuthenticationManager authenticationManager;
   final UserRepository userRepository;
   final RoleRepository roleRepository;
@@ -87,7 +90,6 @@ public class AuthController {
                                    userDetails.getEmail(),
                                    roles));
   }
-
   @PostMapping("/signup")
   public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
     if (userRepository.existsByUsername(signUpRequest.getUsername())) {
@@ -114,15 +116,23 @@ public class AuthController {
 
     return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
   }
-
-
   @PostMapping("/logout")
   public ResponseEntity<?> logOut(@CookieValue(value = "token") String jwt) {
-    JWTToken existingJwtToken = tokenRepository.findTokenByToken(jwt);
+    JWTToken existingJwtToken = tokenRepository.findByToken(jwt);
 
-    existingJwtToken.setValid(false);
+    try {
+      if (existingJwtToken == null)
+        throw new Exception("JWT Token Not Found !!");
+      if(!existingJwtToken.isValid())
+        throw new Exception("JWT Token Already Expired !!");
+    } catch (Exception e) {
+      logger.error("Exception : " + e.getMessage());
+      return ResponseEntity
+              .badRequest()
+              .body(new MessageResponse(e.getMessage()));
+    }
 
-    JWTToken newJwtToken = tokenRepository.save(existingJwtToken);
+    tokenRepository.deleteByToken(existingJwtToken.getToken());
 
     return ResponseEntity.ok(new MessageResponse("User Successfully Logged Out !!"));
   }

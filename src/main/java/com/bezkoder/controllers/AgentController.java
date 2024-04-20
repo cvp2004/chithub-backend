@@ -10,9 +10,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/agents")
@@ -60,13 +60,39 @@ public class AgentController {
           }
      }
 
-     @GetMapping()
-     public ResponseEntity<?> getAllAgents() {
-         List<Agent> agents = agentRepository.findAll();
-         return ResponseEntity.ok(agents);
+//     @GetMapping()
+//     public ResponseEntity<?> getAllAgents() {
+//         List<Agent> agents = agentRepository.findAll();
+//         return ResponseEntity.ok(agents);
+//     }
+
+     @PostMapping
+     public ResponseEntity<?> registerAgent(@RequestBody Agent agent, @CookieValue(value = "token") String token) {
+          try {
+               String username = jwtUtils.getUserNameFromJwtToken(token);
+
+               if(agentRepository.existsByUsername(username))
+                    throw new Exception("Agent With Same Username already Exists !!\n" + " Agent Username : " + username);
+
+               agent.setUsername(username);
+
+               Agent newAgent = agentRepository.save(agent);
+
+               if (newAgent != null)
+                    return ResponseEntity.ok(newAgent);
+               else
+                    return ResponseEntity.internalServerError().build();
+          }
+          catch(Exception e) {
+               logger.error("Exception : " + e.getMessage());
+               return ResponseEntity
+                       .badRequest()
+                       .body(new MessageResponse(e.getMessage()));
+          }
      }
 
      @PutMapping("/{username}")
+     @PreAuthorize("hasRole('AGENT')")
      public ResponseEntity<?> updateAgentDetails(@PathVariable String username, @CookieValue(value = "token") String token, @RequestBody Agent reqAgent) {
 
           try {

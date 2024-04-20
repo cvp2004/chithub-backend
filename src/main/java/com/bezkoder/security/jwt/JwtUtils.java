@@ -74,7 +74,9 @@ public class JwtUtils {
   public boolean validateJwtToken(String authToken) {
     try {
 
-      if(!tokenRepository.findTokenByToken(authToken).isValid())
+      if(tokenRepository.findByToken(authToken) == null)
+        return false;
+      if(!tokenRepository.findByToken(authToken).isValid())
         return false;
 
       Jwts.parserBuilder().setSigningKey(key()).build().parse(authToken);
